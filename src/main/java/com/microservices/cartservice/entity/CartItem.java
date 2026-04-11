@@ -10,49 +10,26 @@ public class CartItem {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private Long cartId;
     private Long productId;
     private int quantity;
 
-    // Constructors
-    public CartItem() {}
+    @ManyToOne
+    @JoinColumn(name = "cart_id")
+    private Cart cart;
 
-    public CartItem(Long cartId, Long productId, int quantity) {
-        this.cartId = cartId;
-        this.productId = productId;
-        this.quantity = quantity;
-    }
+    // GETTERS
+    public Long getId() { return id; }
+    public Long getProductId() { return productId; }
+    public int getQuantity() { return quantity; }
+    public Cart getCart() { return cart; }
 
-    // Getters and Setters
-    public Long getId() {
-        return id;
-    }
+    // SETTERS
+    public void setId(Long id) { this.id = id; }
+    public void setProductId(Long productId) { this.productId = productId; }
+    public void setQuantity(int quantity) { this.quantity = quantity; }
 
-    public Long getCartId() {
-        return cartId;
-    }
-
-    public Long getProductId() {
-        return productId;
-    }
-
-    public int getQuantity() {
-        return quantity;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
-    }
-
-    public void setCartId(Long cartId) {
-        this.cartId = cartId;
-    }
-
-    public void setProductId(Long productId) {
-        this.productId = productId;
-    }
-
-    public void setQuantity(int quantity) {
-        this.quantity = quantity;
+    // 🔥 THIS IS THE FIX
+    public void setCart(Cart cart) {
+        this.cart = cart;
     }
 }

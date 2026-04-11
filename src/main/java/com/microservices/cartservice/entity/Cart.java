@@ -1,6 +1,7 @@
 package com.microservices.cartservice.entity;
 
 import jakarta.persistence.*;
+import java.util.List;
 
 @Entity
 @Table(name = "cart")
@@ -12,14 +13,13 @@ public class Cart {
 
     private Long userId;
 
-    // Constructors
-    public Cart() {}
+    // 🔥 IMPORTANT: Relationship with CartItem
+    @OneToMany(mappedBy = "cart", cascade = CascadeType.ALL)
+    private List<CartItem> items;
 
-    public Cart(Long userId) {
-        this.userId = userId;
-    }
-
-    // Getters and Setters
+    // =====================
+    // GETTERS
+    // =====================
     public Long getId() {
         return id;
     }
@@ -28,11 +28,22 @@ public class Cart {
         return userId;
     }
 
+    public List<CartItem> getItems() {   // 🔥 THIS FIXES ERROR
+        return items;
+    }
+
+    // =====================
+    // SETTERS
+    // =====================
     public void setId(Long id) {
         this.id = id;
     }
 
     public void setUserId(Long userId) {
         this.userId = userId;
+    }
+
+    public void setItems(List<CartItem> items) {
+        this.items = items;
     }
 }
