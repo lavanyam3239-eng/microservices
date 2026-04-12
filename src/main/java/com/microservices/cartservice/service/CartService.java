@@ -5,6 +5,7 @@ import com.microservices.cartservice.entity.CartItem;
 import com.microservices.cartservice.repository.CartItemRepository;
 import com.microservices.cartservice.repository.CartRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.data.domain.*;
 
 import java.util.List;
 
@@ -81,5 +82,11 @@ public class CartService {
     // ============================
     public void clearCart(Long cartId) {
         cartRepository.deleteById(cartId);
+    }
+    public Page<Cart> getCarts(int page, int size, String sortBy) {
+
+        Pageable pageable = PageRequest.of(page, size, Sort.by(sortBy));
+
+        return cartRepository.findAll(pageable);
     }
 }

@@ -7,6 +7,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import org.springframework.data.domain.Page;
 
 @RestController
 @RequestMapping("/cart")
@@ -87,5 +88,13 @@ public class CartController {
     @GetMapping("/test")
     public String test() {
         return "Cart API Working!";
+    }
+    @GetMapping("/page")
+    public Page<Cart> getCarts(
+            @RequestParam int page,
+            @RequestParam int size,
+            @RequestParam String sortBy) {
+
+        return cartService.getCarts(page, size, sortBy);
     }
 }

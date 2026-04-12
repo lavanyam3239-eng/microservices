@@ -2,6 +2,7 @@ package com.microservices.cartservice.entity;
 
 import jakarta.persistence.*;
 import java.util.List;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 
 @Entity
 @Table(name = "cart")
@@ -15,6 +16,7 @@ public class Cart {
 
     // 🔥 IMPORTANT: Relationship with CartItem
     @OneToMany(mappedBy = "cart", cascade = CascadeType.ALL)
+    @JsonManagedReference
     private List<CartItem> items;
 
     // =====================
