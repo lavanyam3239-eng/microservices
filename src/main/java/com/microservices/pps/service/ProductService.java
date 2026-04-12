@@ -6,6 +6,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import org.springframework.data.domain.*;
 
 @Service
 @RequiredArgsConstructor
@@ -41,5 +42,31 @@ public class ProductService {
     // DELETE
     public void deleteProduct(Long id) {
         productRepository.deleteById(id);
+    }
+
+    public Page<Product> getProducts(int page, int size, String sortBy) {
+
+        Pageable pageable = PageRequest.of(page, size, Sort.by(sortBy));
+
+        return productRepository.findAll(pageable);
+    }
+    // ============================
+// FILTER PRODUCTS
+// ============================
+    public List<Product> filterProducts(double price) {
+        return productRepository.findAll()
+                .stream()
+                .filter(p -> p.getPrice() > price)
+                .toList();
+    }
+
+    // ============================
+// GET PRODUCT NAMES
+// ============================
+    public List<String> getProductNames() {
+        return productRepository.findAll()
+                .stream()
+                .map(Product::getName)
+                .toList();
     }
 }

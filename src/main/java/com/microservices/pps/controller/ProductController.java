@@ -2,48 +2,68 @@ package com.microservices.pps.controller;
 
 import com.microservices.pps.entity.Product;
 import com.microservices.pps.service.ProductService;
-import lombok.RequiredArgsConstructor;
-import org.springframework.http.ResponseEntity;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
 @RestController
 @RequestMapping("/products")
-@RequiredArgsConstructor
 public class ProductController {
 
-    private final ProductService productService;
+    @Autowired
+    private ProductService productService;
 
-    // CREATE
+    // ===============================
+    // CREATE PRODUCT
+    // ===============================
     @PostMapping
-    public ResponseEntity<Product> createProduct(@RequestBody Product product) {
-        return ResponseEntity.ok(productService.saveProduct(product));
+    public Product createProduct(@RequestBody Product product) {
+        return productService.saveProduct(product);
     }
 
-    // GET ALL
+    // ===============================
+    // GET ALL PRODUCTS
+    // ===============================
     @GetMapping
-    public ResponseEntity<List<Product>> getAllProducts() {
-        return ResponseEntity.ok(productService.getAllProducts());
+    public List<Product> getAllProducts() {
+        return productService.getAllProducts();
     }
 
-    // GET BY ID
-    @GetMapping("/{id}")
-    public ResponseEntity<Product> getProductById(@PathVariable Long id) {
-        return ResponseEntity.ok(productService.getProductById(id));
+    // ===============================
+    // GET PRODUCT BY ID (FIXED PATH)
+    // ===============================
+    @GetMapping("/id/{id}")   // 🔥 IMPORTANT CHANGE
+    public Product getProductById(@PathVariable Long id) {
+        return productService.getProductById(id);
     }
 
-    // UPDATE
-    @PutMapping("/{id}")
-    public ResponseEntity<Product> updateProduct(@PathVariable Long id,
-                                                 @RequestBody Product product) {
-        return ResponseEntity.ok(productService.updateProduct(id, product));
+    // ===============================
+    // PAGINATION + SORTING
+    // ===============================
+    @GetMapping("/page")
+    public Page<Product> getProducts(
+            @RequestParam int page,
+            @RequestParam int size,
+            @RequestParam String sortBy) {
+
+        return productService.getProducts(page, size, sortBy);
     }
 
-    // DELETE
-    @DeleteMapping("/{id}")
-    public ResponseEntity<String> deleteProduct(@PathVariable Long id) {
-        productService.deleteProduct(id);
-        return ResponseEntity.ok("Product deleted successfully");
+    // ===============================
+    // FILTER USING STREAMS
+    // ===============================
+    @GetMapping("/filter")
+    public List<Product> filterProducts(@RequestParam double price) {
+        return productService.filterProducts(price);
+    }
+
+    // ===============================
+    // GET PRODUCT NAMES (STREAMS)
+    // ===============================
+    @GetMapping("/names")
+    public List<String> getProductNames() {
+        return productService.getProductNames();
     }
 }
