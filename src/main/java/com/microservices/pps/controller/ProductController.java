@@ -66,4 +66,9 @@ public class ProductController {
     public List<String> getProductNames() {
         return productService.getProductNames();
     }
+    // ✅ API: Get products above certain price
+    @GetMapping("/above-price/{price}")
+    public List<Product> getProductsAbovePrice(@PathVariable double price) {
+        return productService.getProductsAbovePrice(price);
+    }
 }
