@@ -22,71 +22,52 @@ public class CartService {
         this.cartItemRepository = cartItemRepository;
     }
 
-    // ============================
-    // CREATE CART (WITH ITEMS)
-    // ============================
-
+    // ✅ CREATE CART
     public Cart createCart(Cart cart) {
-
-        // 🔥 FIX: avoid null error
         if (cart.getItems() != null && !cart.getItems().isEmpty()) {
             cart.getItems().forEach(item -> item.setCart(cart));
         }
-
         return cartRepository.save(cart);
     }
-    // ============================
-    // GET ALL CARTS
-    // ============================
+
+    // ✅ GET ALL CARTS
     public List<Cart> getAllCarts() {
         return cartRepository.findAll();
     }
 
-    // ============================
-    // GET CART BY ID
-    // ============================
+    // ✅ GET CART BY ID
     public Cart getCartById(Long id) {
         return cartRepository.findById(id).orElse(null);
     }
 
-    // ============================
-    // GET CART BY USER ID
-    // ============================
-    public Cart getCartByUserId(Long userId) {
+    // ✅ GET CART BY USER ID (keep ONLY ONE)
+    public List<Cart> getCartByUserId(Long userId) {
         return cartRepository.findByUserId(userId);
     }
 
-    // ============================
-    // ADD ITEM TO CART
-    // ============================
+    // ✅ ADD ITEM
     public CartItem addItemToCart(CartItem item) {
         return cartItemRepository.save(item);
     }
 
-    // ============================
-    // GET ITEMS BY CART ID
-    // ============================
+    // ✅ GET ITEMS BY CART ID (keep ONLY ONE)
     public List<CartItem> getItemsByCartId(Long cartId) {
-        return cartItemRepository.findByCart_Id(cartId);
+        return cartItemRepository.findByCartId(cartId);
     }
 
-    // ============================
-    // REMOVE ITEM
-    // ============================
+    // ✅ REMOVE ITEM
     public void removeItem(Long itemId) {
         cartItemRepository.deleteById(itemId);
     }
 
-    // ============================
-    // CLEAR CART
-    // ============================
+    // ✅ CLEAR CART
     public void clearCart(Long cartId) {
         cartRepository.deleteById(cartId);
     }
+
+    // ✅ PAGINATION
     public Page<Cart> getCarts(int page, int size, String sortBy) {
-
         Pageable pageable = PageRequest.of(page, size, Sort.by(sortBy));
-
         return cartRepository.findAll(pageable);
     }
 }
