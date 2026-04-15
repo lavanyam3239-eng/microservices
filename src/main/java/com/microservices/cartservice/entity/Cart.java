@@ -14,10 +14,12 @@ public class Cart {
 
     private Long userId;
 
-    // 🔥 IMPORTANT: Relationship with CartItem
     @OneToMany(mappedBy = "cart", cascade = CascadeType.ALL)
     @JsonManagedReference
     private List<CartItem> items;
+
+    // ✅ ADD THIS (VERY IMPORTANT)
+    public Cart() {}
 
     // =====================
     // GETTERS
@@ -30,7 +32,7 @@ public class Cart {
         return userId;
     }
 
-    public List<CartItem> getItems() {   // 🔥 THIS FIXES ERROR
+    public List<CartItem> getItems() {
         return items;
     }
 

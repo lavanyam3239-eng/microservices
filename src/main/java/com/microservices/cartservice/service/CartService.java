@@ -3,6 +3,8 @@ package com.microservices.cartservice.service;
 import com.microservices.cartservice.dto.ProductResponse;
 import com.microservices.cartservice.entity.Cart;
 import com.microservices.cartservice.entity.CartItem;
+import com.microservices.cartservice.event.CartEvent;
+import com.microservices.cartservice.kafka.KafkaProducerService;
 import com.microservices.cartservice.repository.CartItemRepository;
 import com.microservices.cartservice.repository.CartRepository;
 import org.springframework.stereotype.Service;
@@ -14,15 +16,18 @@ public class CartService {
     private final CartRepository cartRepository;
     private final CartItemRepository cartItemRepository;
     private final WebClient webClient;
+    private final KafkaProducerService kafkaProducerService;
 
     // ✅ Constructor Injection
     public CartService(CartRepository cartRepository,
                        CartItemRepository cartItemRepository,
-                       WebClient webClient) {
+                       WebClient webClient,
+                       KafkaProducerService kafkaProducerService) {
 
         this.cartRepository = cartRepository;
         this.cartItemRepository = cartItemRepository;
         this.webClient = webClient;
+        this.kafkaProducerService = kafkaProducerService;
     }
 
     // ✅ CREATE CART
@@ -46,10 +51,10 @@ public class CartService {
         return product;
     }
 
-    // 🔥 ADD ITEM TO CART
+    // 🔥 ADD ITEM TO CART (WITH KAFKA)
     public CartItem addItemToCart(Long cartId, Long productId, int quantity) {
 
-        // ✅ Validate product
+        // ✅ Validate product (REST call)
         ProductResponse product = validateProduct(productId);
 
         // ✅ Check stock
@@ -67,8 +72,20 @@ public class CartService {
         item.setQuantity(quantity);
         item.setCart(cart);
 
-        // ✅ Save item
-        return cartItemRepository.save(item);
+        // ✅ Save to DB
+        CartItem savedItem = cartItemRepository.save(item);
+
+        // 🔥 CREATE EVENT
+        CartEvent event = new CartEvent(
+                cart.getId(),
+                productId,
+                quantity
+        );
+
+        // 🔥 SEND TO KAFKA
+        kafkaProducerService.sendEvent(event);
+
+        return savedItem;
     }
 
     // ✅ GET CART
