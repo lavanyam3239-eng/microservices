@@ -34,7 +34,7 @@ public class ProductController {
     // ===============================
     // GET PRODUCT BY ID (FIXED PATH)
     // ===============================
-    @GetMapping("/id/{id}")   // 🔥 IMPORTANT CHANGE
+    @GetMapping("/{id}")   // ✅ FIX
     public Product getProductById(@PathVariable Long id) {
         return productService.getProductById(id);
     }
