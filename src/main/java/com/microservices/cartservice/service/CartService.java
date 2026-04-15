@@ -1,73 +1,85 @@
 package com.microservices.cartservice.service;
 
+import com.microservices.cartservice.dto.ProductResponse;
 import com.microservices.cartservice.entity.Cart;
 import com.microservices.cartservice.entity.CartItem;
 import com.microservices.cartservice.repository.CartItemRepository;
 import com.microservices.cartservice.repository.CartRepository;
 import org.springframework.stereotype.Service;
-import org.springframework.data.domain.*;
-
-import java.util.List;
+import org.springframework.web.reactive.function.client.WebClient;
 
 @Service
 public class CartService {
 
     private final CartRepository cartRepository;
     private final CartItemRepository cartItemRepository;
+    private final WebClient webClient;
 
-    // Constructor Injection
+    // ✅ Constructor Injection
     public CartService(CartRepository cartRepository,
-                       CartItemRepository cartItemRepository) {
+                       CartItemRepository cartItemRepository,
+                       WebClient webClient) {
+
         this.cartRepository = cartRepository;
         this.cartItemRepository = cartItemRepository;
+        this.webClient = webClient;
     }
 
     // ✅ CREATE CART
     public Cart createCart(Cart cart) {
-        if (cart.getItems() != null && !cart.getItems().isEmpty()) {
-            cart.getItems().forEach(item -> item.setCart(cart));
-        }
         return cartRepository.save(cart);
     }
 
-    // ✅ GET ALL CARTS
-    public List<Cart> getAllCarts() {
-        return cartRepository.findAll();
+    // 🔥 CALL PRODUCT SERVICE USING WEBCLIENT
+    public ProductResponse validateProduct(Long productId) {
+
+        ProductResponse product = webClient.get()
+                .uri("/products/" + productId)
+                .retrieve()
+                .bodyToMono(ProductResponse.class)
+                .block();
+
+        if (product == null) {
+            throw new RuntimeException("Product not found");
+        }
+
+        return product;
     }
 
-    // ✅ GET CART BY ID
-    public Cart getCartById(Long id) {
-        return cartRepository.findById(id).orElse(null);
-    }
+    // 🔥 ADD ITEM TO CART
+    public CartItem addItemToCart(Long cartId, Long productId, int quantity) {
 
-    // ✅ GET CART BY USER ID (keep ONLY ONE)
-    public List<Cart> getCartByUserId(Long userId) {
-        return cartRepository.findByUserId(userId);
-    }
+        // ✅ Validate product
+        ProductResponse product = validateProduct(productId);
 
-    // ✅ ADD ITEM
-    public CartItem addItemToCart(CartItem item) {
+        // ✅ Check stock
+        if (product.getStock() < quantity) {
+            throw new RuntimeException("Product out of stock!");
+        }
+
+        // ✅ Fetch cart
+        Cart cart = cartRepository.findById(cartId)
+                .orElseThrow(() -> new RuntimeException("Cart not found"));
+
+        // ✅ Create item
+        CartItem item = new CartItem();
+        item.setProductId(productId);
+        item.setQuantity(quantity);
+        item.setCart(cart);
+
+        // ✅ Save item
         return cartItemRepository.save(item);
     }
 
-    // ✅ GET ITEMS BY CART ID (keep ONLY ONE)
-    public List<CartItem> getItemsByCartId(Long cartId) {
-        return cartItemRepository.findByCartId(cartId);
+    // ✅ GET CART
+    public Cart getCart(Long cartId) {
+        return cartRepository.findById(cartId)
+                .orElseThrow(() -> new RuntimeException("Cart not found"));
     }
 
-    // ✅ REMOVE ITEM
-    public void removeItem(Long itemId) {
+    // ✅ DELETE ITEM
+    public String deleteItem(Long itemId) {
         cartItemRepository.deleteById(itemId);
-    }
-
-    // ✅ CLEAR CART
-    public void clearCart(Long cartId) {
-        cartRepository.deleteById(cartId);
-    }
-
-    // ✅ PAGINATION
-    public Page<Cart> getCarts(int page, int size, String sortBy) {
-        Pageable pageable = PageRequest.of(page, size, Sort.by(sortBy));
-        return cartRepository.findAll(pageable);
+        return "Item removed successfully";
     }
 }

@@ -1,7 +1,7 @@
 package com.microservices.cartservice.entity;
 
 import jakarta.persistence.*;
-import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 @Entity
 @Table(name = "cart_item")
@@ -16,8 +16,11 @@ public class CartItem {
 
     @ManyToOne
     @JoinColumn(name = "cart_id")
-    @JsonBackReference
+    @JsonIgnoreProperties("items")
     private Cart cart;
+
+    // 🔥 REQUIRED (VERY IMPORTANT)
+    public CartItem() {}
 
     // GETTERS
     public Long getId() { return id; }
@@ -30,7 +33,6 @@ public class CartItem {
     public void setProductId(Long productId) { this.productId = productId; }
     public void setQuantity(int quantity) { this.quantity = quantity; }
 
-    // 🔥 THIS IS THE FIX
     public void setCart(Cart cart) {
         this.cart = cart;
     }
