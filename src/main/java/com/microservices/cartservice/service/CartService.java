@@ -1,32 +1,31 @@
 package com.microservices.cartservice.service;
 
-import com.microservices.cartservice.dto.ProductResponse;
+import java.util.concurrent.CompletableFuture;
+
+import org.springframework.stereotype.Service;
+
+import com.microservices.cartservice.repository.CartRepository;
+import com.microservices.cartservice.repository.CartItemRepository;
 import com.microservices.cartservice.entity.Cart;
 import com.microservices.cartservice.entity.CartItem;
 import com.microservices.cartservice.event.CartEvent;
+import com.microservices.cartservice.dto.ProductResponse;
 import com.microservices.cartservice.kafka.KafkaProducerService;
-import com.microservices.cartservice.repository.CartItemRepository;
-import com.microservices.cartservice.repository.CartRepository;
-import org.springframework.stereotype.Service;
-import org.springframework.web.reactive.function.client.WebClient;
 
 @Service
 public class CartService {
 
+    // ✅ Dependencies
     private final CartRepository cartRepository;
     private final CartItemRepository cartItemRepository;
-    private final WebClient webClient;
     private final KafkaProducerService kafkaProducerService;
 
     // ✅ Constructor Injection
     public CartService(CartRepository cartRepository,
                        CartItemRepository cartItemRepository,
-                       WebClient webClient,
                        KafkaProducerService kafkaProducerService) {
-
         this.cartRepository = cartRepository;
         this.cartItemRepository = cartItemRepository;
-        this.webClient = webClient;
         this.kafkaProducerService = kafkaProducerService;
     }
 
@@ -35,29 +34,35 @@ public class CartService {
         return cartRepository.save(cart);
     }
 
-    // 🔥 CALL PRODUCT SERVICE USING WEBCLIENT
+    // 🔥 TEMP PRODUCT VALIDATION (Mock)
     public ProductResponse validateProduct(Long productId) {
 
-        ProductResponse product = webClient.get()
-                .uri("/products/" + productId)
-                .retrieve()
-                .bodyToMono(ProductResponse.class)
-                .block();
+        System.out.println("Fetching product - Thread: " + Thread.currentThread().getName());
 
-        if (product == null) {
-            throw new RuntimeException("Product not found");
-        }
+        // Temporary mock (until WebClient is fixed)
+        ProductResponse product = new ProductResponse();
+        product.setId(productId);
+        product.setName("Dummy Product");
+        product.setPrice(1000);
+        product.setStock(10); // dummy stock
 
         return product;
     }
 
-    // 🔥 ADD ITEM TO CART (WITH KAFKA)
+    // 🔥 ASYNC ADD ITEM (CompletableFuture)
     public CartItem addItemToCart(Long cartId, Long productId, int quantity) {
 
-        // ✅ Validate product (REST call)
-        ProductResponse product = validateProduct(productId);
+        // 🔥 Async Task → Fetch Product
+        CompletableFuture<ProductResponse> productFuture =
+                CompletableFuture.supplyAsync(() -> validateProduct(productId));
 
-        // ✅ Check stock
+        // 🔥 Wait for async completion
+        CompletableFuture.allOf(productFuture).join();
+
+        // 👉 Get result
+        ProductResponse product = productFuture.join();
+
+        // ✅ Validate stock
         if (product.getStock() < quantity) {
             throw new RuntimeException("Product out of stock!");
         }
@@ -75,15 +80,16 @@ public class CartService {
         // ✅ Save to DB
         CartItem savedItem = cartItemRepository.save(item);
 
-        // 🔥 CREATE EVENT
+        // 🔥 Kafka Event
         CartEvent event = new CartEvent(
                 cart.getId(),
                 productId,
                 quantity
         );
 
-        // 🔥 SEND TO KAFKA
         kafkaProducerService.sendEvent(event);
+
+        System.out.println("Kafka Event Sent: " + event);
 
         return savedItem;
     }
