@@ -4,6 +4,7 @@ import com.microservices.cartservice.dto.CartItemRequest;
 import com.microservices.cartservice.entity.Cart;
 import com.microservices.cartservice.entity.CartItem;
 import com.microservices.cartservice.service.CartService;
+import jakarta.validation.Valid;  // 🔥 IMPORTANT
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
@@ -20,9 +21,9 @@ public class CartController {
         return cartService.createCart(cart);
     }
 
-    // ✅ ADD ITEM (DTO)
+    // ✅ ADD ITEM (WITH VALIDATION 🔥)
     @PostMapping("/add-item")
-    public CartItem addItem(@RequestBody CartItemRequest request) {
+    public CartItem addItem(@Valid @RequestBody CartItemRequest request) {
         return cartService.addItemToCart(
                 request.getCartId(),
                 request.getProductId(),

@@ -2,6 +2,8 @@ package com.microservices.cartservice.service;
 
 import java.util.concurrent.CompletableFuture;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import com.microservices.cartservice.repository.CartRepository;
@@ -15,12 +17,13 @@ import com.microservices.cartservice.kafka.KafkaProducerService;
 @Service
 public class CartService {
 
-    // ✅ Dependencies
+    // 🔥 Logger (IMPORTANT)
+    private static final Logger log = LoggerFactory.getLogger(CartService.class);
+
     private final CartRepository cartRepository;
     private final CartItemRepository cartItemRepository;
     private final KafkaProducerService kafkaProducerService;
 
-    // ✅ Constructor Injection
     public CartService(CartRepository cartRepository,
                        CartItemRepository cartItemRepository,
                        KafkaProducerService kafkaProducerService) {
@@ -31,45 +34,47 @@ public class CartService {
 
     // ✅ CREATE CART
     public Cart createCart(Cart cart) {
+        log.info("🛒 Creating cart for userId={}", cart.getUserId());
         return cartRepository.save(cart);
     }
 
-    // 🔥 TEMP PRODUCT VALIDATION (Mock)
+    // 🔥 TEMP PRODUCT VALIDATION
     public ProductResponse validateProduct(Long productId) {
 
-        System.out.println("Fetching product - Thread: " + Thread.currentThread().getName());
+        log.info("🔍 Fetching product for productId={}", productId);
 
-        // Temporary mock (until WebClient is fixed)
         ProductResponse product = new ProductResponse();
         product.setId(productId);
         product.setName("Dummy Product");
         product.setPrice(1000);
-        product.setStock(10); // dummy stock
+        product.setStock(10);
 
         return product;
     }
 
-    // 🔥 ASYNC ADD ITEM (CompletableFuture)
+    // 🔥 ADD ITEM
     public CartItem addItemToCart(Long cartId, Long productId, int quantity) {
 
-        // 🔥 Async Task → Fetch Product
-        CompletableFuture<ProductResponse> productFuture =
-                CompletableFuture.supplyAsync(() -> validateProduct(productId));
+        log.info("📥 API Call → cartId={}, productId={}, quantity={}",
+                cartId, productId, quantity);
 
-        // 🔥 Wait for async completion
-        CompletableFuture.allOf(productFuture).join();
+        // Async call
+        ProductResponse product = CompletableFuture
+                .supplyAsync(() -> validateProduct(productId))
+                .join();
 
-        // 👉 Get result
-        ProductResponse product = productFuture.join();
-
-        // ✅ Validate stock
+        // ✅ Stock validation
         if (product.getStock() < quantity) {
-            throw new RuntimeException("Product out of stock!");
+            log.error("❌ Product out of stock for productId={}", productId);
+            throw new IllegalArgumentException("Product out of stock!");
         }
 
         // ✅ Fetch cart
         Cart cart = cartRepository.findById(cartId)
-                .orElseThrow(() -> new RuntimeException("Cart not found"));
+                .orElseThrow(() -> {
+                    log.error("❌ Cart not found for cartId={}", cartId);
+                    return new RuntimeException("Cart not found");
+                });
 
         // ✅ Create item
         CartItem item = new CartItem();
@@ -77,31 +82,31 @@ public class CartService {
         item.setQuantity(quantity);
         item.setCart(cart);
 
-        // ✅ Save to DB
         CartItem savedItem = cartItemRepository.save(item);
 
-        // 🔥 Kafka Event
-        CartEvent event = new CartEvent(
-                cart.getId(),
-                productId,
-                quantity
-        );
-
+        // 🔥 Kafka event
+        CartEvent event = new CartEvent(cartId, productId, quantity);
         kafkaProducerService.sendEvent(event);
 
-        System.out.println("Kafka Event Sent: " + event);
+        log.info("🚀 Kafka Event Sent → {}", event);
 
         return savedItem;
     }
 
     // ✅ GET CART
     public Cart getCart(Long cartId) {
+        log.info("📦 Fetching cart for cartId={}", cartId);
+
         return cartRepository.findById(cartId)
-                .orElseThrow(() -> new RuntimeException("Cart not found"));
+                .orElseThrow(() -> {
+                    log.error("❌ Cart not found for cartId={}", cartId);
+                    return new RuntimeException("Cart not found");
+                });
     }
 
     // ✅ DELETE ITEM
     public String deleteItem(Long itemId) {
+        log.info("🗑 Deleting item with id={}", itemId);
         cartItemRepository.deleteById(itemId);
         return "Item removed successfully";
     }
