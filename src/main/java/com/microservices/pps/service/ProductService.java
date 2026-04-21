@@ -6,6 +6,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
 import org.springframework.data.domain.*;
 
 @Service
@@ -22,7 +25,7 @@ public class ProductService {
     }
 
     // ============================
-    // GET ALL (used for old APIs / testing)
+    // GET ALL
     // ============================
     public List<Product> getAllProducts() {
         return productRepository.findAll();
@@ -55,11 +58,10 @@ public class ProductService {
     }
 
     // ============================
-    // 🔥 PAGINATION + SORTING (MAIN METHOD)
+    // 🔥 PAGINATION + SORTING + REMOVE DUPLICATES
     // ============================
     public Page<Product> getProducts(int page, int size, String sortBy) {
 
-        // 🔥 fallback if sortBy not provided
         if (sortBy == null || sortBy.isEmpty()) {
             sortBy = "id";
         }
@@ -70,11 +72,30 @@ public class ProductService {
                 Sort.by(Sort.Direction.ASC, sortBy)
         );
 
-        return productRepository.findAll(pageable);
+        Page<Product> productPage = productRepository.findAll(pageable);
+
+        // 🔥 REMOVE DUPLICATES BASED ON NAME
+        Map<String, Product> uniqueMap = productPage.getContent()
+                .stream()
+                .collect(Collectors.toMap(
+                        Product::getName,
+                        p -> p,
+                        (existing, duplicate) -> existing // keep first
+                ));
+
+        List<Product> uniqueProducts = uniqueMap.values()
+                .stream()
+                .toList();
+
+        return new PageImpl<>(
+                uniqueProducts,
+                pageable,
+                uniqueProducts.size()
+        );
     }
 
     // ============================
-    // 🔥 ADVANCED (for next step 2H)
+    // 🔥 ADVANCED SORTING
     // ============================
     public Page<Product> getProducts(int page, int size, String sortBy, String direction) {
 
@@ -88,11 +109,30 @@ public class ProductService {
 
         Pageable pageable = PageRequest.of(page, size, sort);
 
-        return productRepository.findAll(pageable);
+        Page<Product> productPage = productRepository.findAll(pageable);
+
+        // 🔥 REMOVE DUPLICATES
+        Map<String, Product> uniqueMap = productPage.getContent()
+                .stream()
+                .collect(Collectors.toMap(
+                        Product::getName,
+                        p -> p,
+                        (existing, duplicate) -> existing
+                ));
+
+        List<Product> uniqueProducts = uniqueMap.values()
+                .stream()
+                .toList();
+
+        return new PageImpl<>(
+                uniqueProducts,
+                pageable,
+                uniqueProducts.size()
+        );
     }
 
     // ============================
-    // FILTER PRODUCTS (STREAMS)
+    // FILTER PRODUCTS
     // ============================
     public List<Product> filterProducts(double price) {
         return productRepository.findAll()
@@ -102,7 +142,7 @@ public class ProductService {
     }
 
     // ============================
-    // GET PRODUCT NAMES (STREAMS)
+    // GET PRODUCT NAMES
     // ============================
     public List<String> getProductNames() {
         return productRepository.findAll()
@@ -112,7 +152,7 @@ public class ProductService {
     }
 
     // ============================
-    // CUSTOM QUERY (REPOSITORY)
+    // CUSTOM QUERY
     // ============================
     public List<Product> getProductsAbovePrice(double price) {
         return productRepository.findProductsAbovePrice(price);
