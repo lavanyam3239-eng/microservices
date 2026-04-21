@@ -6,7 +6,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 
 import org.springframework.data.domain.*;
@@ -58,7 +57,7 @@ public class ProductService {
     }
 
     // ============================
-    // 🔥 PAGINATION + SORTING + REMOVE DUPLICATES
+    // 🔥 PAGINATION + SORTING + REMOVE DUPLICATES (FINAL FIX)
     // ============================
     public Page<Product> getProducts(int page, int size, String sortBy) {
 
@@ -66,36 +65,39 @@ public class ProductService {
             sortBy = "id";
         }
 
-        Pageable pageable = PageRequest.of(
-                page,
-                size,
+        // 🔥 Step 1: Fetch ALL sorted data
+        List<Product> allProducts = productRepository.findAll(
                 Sort.by(Sort.Direction.ASC, sortBy)
         );
 
-        Page<Product> productPage = productRepository.findAll(pageable);
-
-        // 🔥 REMOVE DUPLICATES BASED ON NAME
-        Map<String, Product> uniqueMap = productPage.getContent()
-                .stream()
+        // 🔥 Step 2: Remove duplicates (preserve order)
+        List<Product> uniqueProducts = allProducts.stream()
                 .collect(Collectors.toMap(
                         Product::getName,
                         p -> p,
-                        (existing, duplicate) -> existing // keep first
-                ));
-
-        List<Product> uniqueProducts = uniqueMap.values()
+                        (existing, duplicate) -> existing,
+                        java.util.LinkedHashMap::new
+                ))
+                .values()
                 .stream()
                 .toList();
 
+        // 🔥 Step 3: Manual pagination
+        int start = page * size;
+        int end = Math.min(start + size, uniqueProducts.size());
+
+        List<Product> paginatedList = uniqueProducts.subList(start, end);
+
+        // 🔥 Step 4: Return Page
         return new PageImpl<>(
-                uniqueProducts,
-                pageable,
+                paginatedList,
+                PageRequest.of(page, size),
                 uniqueProducts.size()
         );
     }
 
     // ============================
-    // 🔥 ADVANCED SORTING
+    // 🔥 ADVANCED SORTING + REMOVE DUPLICATES
     // ============================
     public Page<Product> getProducts(int page, int size, String sortBy, String direction) {
 
@@ -107,26 +109,30 @@ public class ProductService {
                 ? Sort.by(sortBy).descending()
                 : Sort.by(sortBy).ascending();
 
-        Pageable pageable = PageRequest.of(page, size, sort);
+        // 🔥 Step 1: Fetch ALL sorted data
+        List<Product> allProducts = productRepository.findAll(sort);
 
-        Page<Product> productPage = productRepository.findAll(pageable);
-
-        // 🔥 REMOVE DUPLICATES
-        Map<String, Product> uniqueMap = productPage.getContent()
-                .stream()
+        // 🔥 Step 2: Remove duplicates
+        List<Product> uniqueProducts = allProducts.stream()
                 .collect(Collectors.toMap(
                         Product::getName,
                         p -> p,
-                        (existing, duplicate) -> existing
-                ));
-
-        List<Product> uniqueProducts = uniqueMap.values()
+                        (existing, duplicate) -> existing,
+                        java.util.LinkedHashMap::new
+                ))
+                .values()
                 .stream()
                 .toList();
 
+        // 🔥 Step 3: Manual pagination
+        int start = page * size;
+        int end = Math.min(start + size, uniqueProducts.size());
+
+        List<Product> paginatedList = uniqueProducts.subList(start, end);
+
         return new PageImpl<>(
-                uniqueProducts,
-                pageable,
+                paginatedList,
+                PageRequest.of(page, size),
                 uniqueProducts.size()
         );
     }
