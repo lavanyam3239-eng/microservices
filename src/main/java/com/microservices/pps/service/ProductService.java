@@ -14,23 +14,31 @@ public class ProductService {
 
     private final ProductRepository productRepository;
 
+    // ============================
     // CREATE
+    // ============================
     public Product saveProduct(Product product) {
         return productRepository.save(product);
     }
 
-    // GET ALL
+    // ============================
+    // GET ALL (used for old APIs / testing)
+    // ============================
     public List<Product> getAllProducts() {
         return productRepository.findAll();
     }
 
+    // ============================
     // GET BY ID
+    // ============================
     public Product getProductById(Long id) {
         return productRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Product not found"));
     }
 
+    // ============================
     // UPDATE
+    // ============================
     public Product updateProduct(Long id, Product product) {
         Product existing = getProductById(id);
         existing.setName(product.getName());
@@ -39,20 +47,53 @@ public class ProductService {
         return productRepository.save(existing);
     }
 
+    // ============================
     // DELETE
+    // ============================
     public void deleteProduct(Long id) {
         productRepository.deleteById(id);
     }
 
+    // ============================
+    // 🔥 PAGINATION + SORTING (MAIN METHOD)
+    // ============================
     public Page<Product> getProducts(int page, int size, String sortBy) {
 
-        Pageable pageable = PageRequest.of(page, size, Sort.by(sortBy));
+        // 🔥 fallback if sortBy not provided
+        if (sortBy == null || sortBy.isEmpty()) {
+            sortBy = "id";
+        }
+
+        Pageable pageable = PageRequest.of(
+                page,
+                size,
+                Sort.by(Sort.Direction.ASC, sortBy)
+        );
 
         return productRepository.findAll(pageable);
     }
+
     // ============================
-// FILTER PRODUCTS
-// ============================
+    // 🔥 ADVANCED (for next step 2H)
+    // ============================
+    public Page<Product> getProducts(int page, int size, String sortBy, String direction) {
+
+        if (sortBy == null || sortBy.isEmpty()) {
+            sortBy = "id";
+        }
+
+        Sort sort = direction.equalsIgnoreCase("desc")
+                ? Sort.by(sortBy).descending()
+                : Sort.by(sortBy).ascending();
+
+        Pageable pageable = PageRequest.of(page, size, sort);
+
+        return productRepository.findAll(pageable);
+    }
+
+    // ============================
+    // FILTER PRODUCTS (STREAMS)
+    // ============================
     public List<Product> filterProducts(double price) {
         return productRepository.findAll()
                 .stream()
@@ -61,8 +102,8 @@ public class ProductService {
     }
 
     // ============================
-// GET PRODUCT NAMES
-// ============================
+    // GET PRODUCT NAMES (STREAMS)
+    // ============================
     public List<String> getProductNames() {
         return productRepository.findAll()
                 .stream()
@@ -70,7 +111,9 @@ public class ProductService {
                 .toList();
     }
 
-    // ✅ Get products above price
+    // ============================
+    // CUSTOM QUERY (REPOSITORY)
+    // ============================
     public List<Product> getProductsAbovePrice(double price) {
         return productRepository.findProductsAbovePrice(price);
     }

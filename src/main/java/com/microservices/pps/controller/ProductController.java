@@ -6,8 +6,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
-
 @RestController
 @RequestMapping("/products")
 public class ProductController {
@@ -15,60 +13,24 @@ public class ProductController {
     @Autowired
     private ProductService productService;
 
-    // ===============================
     // CREATE PRODUCT
-    // ===============================
     @PostMapping
     public Product createProduct(@RequestBody Product product) {
         return productService.saveProduct(product);
     }
 
-    // ===============================
-    // GET ALL PRODUCTS
-    // ===============================
+    // 🔥 PAGINATION API (MAIN API)
     @GetMapping
-    public List<Product> getAllProducts() {
-        return productService.getAllProducts();
+    public Page<Product> getProducts(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "5") int size) {
+
+        return productService.getProducts(page, size, "id");
     }
 
-    // ===============================
-    // GET PRODUCT BY ID (FIXED PATH)
-    // ===============================
-    @GetMapping("/{id}")   // ✅ FIX
+    // GET BY ID
+    @GetMapping("/{id}")
     public Product getProductById(@PathVariable Long id) {
         return productService.getProductById(id);
-    }
-
-    // ===============================
-    // PAGINATION + SORTING
-    // ===============================
-    @GetMapping("/page")
-    public Page<Product> getProducts(
-            @RequestParam int page,
-            @RequestParam int size,
-            @RequestParam String sortBy) {
-
-        return productService.getProducts(page, size, sortBy);
-    }
-
-    // ===============================
-    // FILTER USING STREAMS
-    // ===============================
-    @GetMapping("/filter")
-    public List<Product> filterProducts(@RequestParam double price) {
-        return productService.filterProducts(price);
-    }
-
-    // ===============================
-    // GET PRODUCT NAMES (STREAMS)
-    // ===============================
-    @GetMapping("/names")
-    public List<String> getProductNames() {
-        return productService.getProductNames();
-    }
-    // ✅ API: Get products above certain price
-    @GetMapping("/above-price/{price}")
-    public List<Product> getProductsAbovePrice(@PathVariable double price) {
-        return productService.getProductsAbovePrice(price);
     }
 }
