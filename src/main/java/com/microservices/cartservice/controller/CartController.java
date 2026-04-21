@@ -4,7 +4,7 @@ import com.microservices.cartservice.dto.CartItemRequest;
 import com.microservices.cartservice.entity.Cart;
 import com.microservices.cartservice.entity.CartItem;
 import com.microservices.cartservice.service.CartService;
-import jakarta.validation.Valid;  // 🔥 IMPORTANT
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
@@ -15,13 +15,13 @@ public class CartController {
 
     private final CartService cartService;
 
-    // ✅ CREATE CART
+    // ✅ CREATE CART (FIXED - NO REQUEST BODY)
     @PostMapping
-    public Cart createCart(@RequestBody Cart cart) {
-        return cartService.createCart(cart);
+    public Cart createCart() {
+        return cartService.createCart(new Cart());
     }
 
-    // ✅ ADD ITEM (WITH VALIDATION 🔥)
+    // ✅ ADD ITEM TO CART
     @PostMapping("/add-item")
     public CartItem addItem(@Valid @RequestBody CartItemRequest request) {
         return cartService.addItemToCart(
@@ -31,13 +31,13 @@ public class CartController {
         );
     }
 
-    // ✅ GET CART
+    // ✅ GET CART BY ID
     @GetMapping("/{cartId}")
     public Cart getCart(@PathVariable Long cartId) {
         return cartService.getCart(cartId);
     }
 
-    // ✅ DELETE ITEM
+    // ✅ DELETE ITEM FROM CART
     @DeleteMapping("/item/{itemId}")
     public String deleteItem(@PathVariable Long itemId) {
         return cartService.deleteItem(itemId);
